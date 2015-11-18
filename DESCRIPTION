@@ -1,0 +1,11 @@
+Package: panelmanager
+Title: Panel Management
+Version: 1.0
+Authors@R: person("Uyen", "Hoang", , "uyen@voxpoplabs.com", role = c("aut", "cre"))
+Description: The package contains functions to store raw variables and update the master file accordingly 
+Depends: R (>= 3.1.1)
+License: What license is it under?
+LazyData: true
+Imports: plyr,
+	xlsx
+Suggests: knitr
