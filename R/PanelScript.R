@@ -32,14 +32,14 @@
 #' l_ply(Data, function(D) { storeVar(varList, D, toFilePaths, idvar = c("date", "uniqueID"), source = unique(D$source), reportFile = "../Report.csv") })
 #'
 #' 
-storeVar <- function(var, Data, toFile, fromFile = NA, idvar = NA, source = NA, reportFile = NA, ...) {
+storeVar <- function(var, Data, toFile, fromFile = NA, idvar = NA, source = NA, reportFile = NA, emailClean = TRUE, ...) {
 
 	if ( missing(Data) & !is.na(fromFile)) {
   		if ( !file.exists(fromFile) ) stop(paste0("Could not find ", basename(fromFile), " in ", dirname(fromFile), "."))	
   		Data <- read.csv(fromFile, stringsAsFactors = FALSE)
   	} 
   	if (! is.data.frame(Data)) stop("The data has a wrong format.")
-	Data$source <- source 
+	# Data$source <- source 
 	# Data$email[is.na(Data$email)] <- Data$Email[is.na(Data$email)]
 	# Data$email <- gsub("^\\s+|\\s$|\\ ", "", Data$email)
 	# Data$email <- ifelse(grepl("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$", Data$email) == TRUE, Data$email, NA)
@@ -51,13 +51,25 @@ storeVar <- function(var, Data, toFile, fromFile = NA, idvar = NA, source = NA, 
 	# 	cat("----------------------------------------\n")
 	# 	cat("Start storing variables:", paste(var, collapse = ", "), "\n")
 	# }
-	Data$source <- source 
-	args <- match.call()
-	if (any("emailVars" %in% names(args))) {
+	# Data$source <- source 
+	# args <- match.call()
+	# if (any("emailVars" %in% names(args))) {
+	# 	Data <- cleanEmail(Data, emailVars = emailVars)
+	# } else {
+	# 	Data <- cleanEmail(Data)
+	# }
+
+	if (emailClean) {
+		emailVars <- grep("email", names(Data), value = TRUE, ignore.case = TRUE)
 		Data <- cleanEmail(Data, emailVars = emailVars)
-	} else {
-		Data <- cleanEmail(Data)
+		# if (any("emailVars" %in% names(args))) {
+		# 	Data <- cleanEmail(Data, emailVars = emailVars)
+		# } else {
+		# 	Data <- cleanEmail(Data)
+		# }
 	}
+	if (any(!is.na(unique(Data$source))) & is.na(source)) source <- paste0(unique(Data$source), collapse = ", ")
+
 	if (any(!is.na(source))) { 
 		cat("----------------------------------------\n")
 		cat("Start storing variables:", paste(var, collapse = ", "), "in", source, "\n")
@@ -103,7 +115,7 @@ storeVar <- function(var, Data, toFile, fromFile = NA, idvar = NA, source = NA, 
 			ToData <- NewToData
 			cat(paste0("The ", basename(D$toFile)," has been created in ", dirname(D$toFile), ".\n"))
 		}		
-		ToData <- ToData[!duplicated(ToData) & !is.na(ToData[ , D$var]), ]
+		ToData <- ToData[!duplicated(ToData) & !is.na(ToData[ , D$var]) & !ToData[ , D$var] %in% "", ]
 		if ( all(is.na(ToData$source)) ) ToData$source <- NULL
 		if ("date" %in% names(ToData)) ToData <- plyr::ddply(ToData, .(email), function(D) D[order(D$date, decreasing = TRUE), ])		
 		write.csv(ToData, D$toFile, row.names = FALSE)}
@@ -116,8 +128,9 @@ cleanEmail <- function(Data, emailVars = c("email", "Email")){
 	if (length(emailVars) == 1) {
 		Data$email <- Data[ , emailVars]
 	} else if (length(emailVars) == 2) {
+		# Data$email <- Data[ , emailVars[1]]
+		Data[ , emailVars[1]][is.na(Data[ , emailVars[1]])] <- Data[ , emailVars[2]][is.na(Data[ , emailVars[1]])]
 		Data$email <- Data[ , emailVars[1]]
-		Data$email[is.na(Data$email)] <- Data[ , emailVars[2]][is.na(Data$email)]
 	} else {
 		Data$email <- apply(Data[ , emailVars], 1, function(x) na.omit(x)[1])
 	}
